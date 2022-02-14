@@ -18,7 +18,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build_deploy:
+  deploy:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     # Steps represent a sequence of tasks that will be executed as part of the job
@@ -26,7 +26,7 @@ jobs:
       - name: 构建开始通知
         uses: wertycn/work-wechat-send-action@main
         with:
-          wechat_id: ${{ secrets.WECHAT_CORP_ID }} # 企业微信id
+          wechat_id: ${{ secrets.WECHAT_CROP_ID }} # 企业微信id
           agent_secret: ${{ secrets.WECHAT_CROP_SECRET }} # 应用密钥
           agent_id: ${{ secrets.WECHAT_AGENT_ID }} #应用id
           to_user: '@all' # 消息接收人，多个使用竖线|分割,默认为空发送给所有人
@@ -42,10 +42,6 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: 拉取代码
         uses: actions/checkout@v2
-      - name: 创建JDK 1.8环境
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
       # Runs a single command using the runners shell
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
