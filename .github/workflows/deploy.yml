@@ -1,0 +1,88 @@
+name: CI
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build_deploy:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: 构建开始通知
+        uses: wertycn/work-wechat-send-action@main
+        with:
+          wechat_id: ${{ secrets.WECHAT_CORP_ID }} # 企业微信id
+          agent_secret: ${{ secrets.WECHAT_CROP_SECRET }} # 应用密钥
+          agent_id: ${{ secrets.WECHAT_AGENT_ID }} #应用id
+          to_user: '@all' # 消息接收人，多个使用竖线|分割,默认为空发送给所有人
+          msgtype: text
+          send_step: main # 消息发送时机 main 正常流程  post action 执行完成后发送
+          content: "自动构建开始通知\n\n
+            项目名称: ${{ github.repository }}\n
+            构建分支: ${{ github.ref_name }}\n
+            触发事件: ${{ github.event_name }}\n
+            触发用户: ${{ github.actor }} \n
+            项目地址: <a href='${{ secrets.HOME_URL }}'>${{ secrets.HOME_NAME }}</a>\n
+            "
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: 拉取代码
+        uses: actions/checkout@v2
+      - name: 创建JDK 1.8环境
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      # Runs a single command using the runners shell
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: 登录私有Docker仓库
+        uses: docker/login-action@v1
+        with:
+          registry: hkccr.ccs.tencentyun.com
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - name: Docker镜像编译及推送
+        uses: docker/build-push-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64,linux/386
+          push: true
+          tags: |
+            hkccr.ccs.tencentyun.com/debug.icu/amis-editor:${{ github.sha }}
+            hkccr.ccs.tencentyun.com/debug.icu/amis-editor:latest
+      - name: 等待镜像推送成功
+        run: sleep 5
+      - name: 部署到K8S集群
+        run: deploy.sh ${{ secrets.DEPLOY_ACCESS_KEY }} ${{ secrets.DEPLOY_API_URL }} ${{ github.sha }}
+      - name: 部署完成通知
+        uses: wertycn/work-wechat-send-action@main
+        with:
+          wechat_id: ${{ secrets.WECHAT_CROP_ID }} # 企业微信id
+          agent_secret: ${{ secrets.WECHAT_CROP_SECRET }} # 应用密钥
+          agent_id: ${{ secrets.WECHAT_AGENT_ID }} #应用id
+          to_user: '@all' # 消息接收人，多个使用竖线|分割,默认为空发送给所有人
+          msgtype: text
+          send_step: post # 消息发送时机 main 正常流程  post action 执行完成后发送
+          content: "自动构建结束通知\n\n
+            执行结果: ${{ job.status }}\n
+            项目名称: ${{ github.repository }}\n
+            构建分支: ${{ github.ref_name }}\n
+            触发事件: ${{ github.event_name }}\n
+            触发用户: ${{ github.actor }} \n
+            项目地址: <a href='${{ secrets.HOME_URL }}'>${{ secrets.HOME_NAME }}</a>\n
+            "
