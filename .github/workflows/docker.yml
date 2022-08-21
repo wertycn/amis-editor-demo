@@ -12,7 +12,7 @@ jobs:
       - name: 创建Node环境
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 12
       - name: 获取npm缓存目录
         id: npm-cache-dir
         run: |
