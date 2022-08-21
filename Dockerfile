@@ -7,6 +7,5 @@ WORKDIR /etc/amis-editor
 COPY . .
 
 EXPOSE 8082
-RUN npm i
 
 ENTRYPOINT [ "npm", "run", "server" ]
